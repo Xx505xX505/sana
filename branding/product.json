@@ -1,0 +1,10 @@
+{
+  "nameShort": "SANA",
+  "nameLong": "SANA IDE",
+  "applicationName": "sana",
+  "dataFolderName": ".sana",
+  "win32AppUserModelId": "SANA.IDE",
+  "win32MutexName": "sana",
+  "licenseUrl": "https://github.com/Xx505xX505/sana",
+  "updateUrl": "https://api.github.com/repos/Xx505xX505/sana/releases/latest"
+}
