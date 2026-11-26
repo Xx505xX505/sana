@@ -82,10 +82,18 @@ jobs:
       - name: Add Windows SDK SignTool to PATH
         shell: pwsh
         run: |
-          $sdkRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/bin'
+          $sdkRoot = Join-Path \${env:ProgramFiles(x86)} 'Windows Kits/10/bin'
           if (-not (Test-Path $sdkRoot)) { throw "Windows SDK bin directory not found: $sdkRoot" }
           $signTools = Get-ChildItem -Path $sdkRoot -Filter signtool.exe -File -Recurse |
-            Where-Object { $_.FullName -match '\\x64\\signtool\.exe        working-directory: upstream-vscode
+            Where-Object { $_.Directory.Name -eq 'x64' } |
+            Sort-Object FullName -Descending
+          if (-not $signTools) { throw "x64 signtool.exe was not found under $sdkRoot" }
+          $signToolDir = $signTools[0].Directory.FullName
+          Write-Host "Using Windows SDK SignTool: $($signTools[0].FullName)"
+          Add-Content -Path $env:GITHUB_PATH -Value $signToolDir
+
+      - name: Build official VS Code Windows x64 distribution
+        working-directory: upstream-vscode
         shell: pwsh
         run: |
           npm run gulp -- vscode-win32-x64
