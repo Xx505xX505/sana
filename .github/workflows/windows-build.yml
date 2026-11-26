@@ -48,18 +48,17 @@ jobs:
         with:
           node-version: '22.18.0'
 
-      - name: Enable pnpm from upstream packageManager
-        working-directory: upstream-vscode
+      - name: Install pinned pnpm
         shell: pwsh
         run: |
-          corepack enable
-          corepack pnpm --version
+          npm install --global pnpm@10.12.4
+          pnpm --version
 
       - name: Install VS Code build dependencies
         working-directory: upstream-vscode
         shell: pwsh
         run: |
-          corepack pnpm install --frozen-lockfile
+          pnpm install --frozen-lockfile
 
       - name: Apply SANA product identity
         working-directory: sana-config
