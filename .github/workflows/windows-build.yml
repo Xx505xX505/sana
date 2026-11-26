@@ -12,19 +12,21 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: sana-windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 120
     steps:
       - name: Checkout SANA distribution config
         uses: actions/checkout@v4
+        with:
+          path: sana-config
 
-      - name: Set pinned upstream revision
-        shell: pwsh
-        run: |
-          "VSCODE_COMMIT=661626d0e72f97806550790a98fb87116c9db825" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Checkout official VS Code source
+      - name: Checkout pinned official VS Code source
         uses: actions/checkout@v4
         with:
           repository: microsoft/vscode
@@ -35,18 +37,82 @@ jobs:
       - name: Verify upstream source identity
         shell: pwsh
         run: |
+          $expected = '661626d0e72f97806550790a98fb87116c9db825'
           $actual = (git -C upstream-vscode rev-parse HEAD).Trim()
-          if ($actual -ne '661626d0e72f97806550790a98fb87116c9db825') { throw "Upstream SHA mismatch: $actual" }
-          if (-not (Test-Path 'upstream-vscode/product.json')) { throw 'Not a VS Code source checkout.' }
+          if ($actual -ne $expected) { throw "Upstream SHA mismatch. Expected $expected but received $actual" }
+          if (-not (Test-Path 'upstream-vscode/product.json')) { throw 'The checkout is not a VS Code source tree.' }
+          "SANA uses official microsoft/vscode commit $actual" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
-      - name: Report build inputs
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+          cache: npm
+          cache-dependency-path: upstream-vscode/package-lock.json
+
+      - name: Install VS Code build dependencies
+        working-directory: upstream-vscode
         shell: pwsh
         run: |
-          "SANA_BUILD_UPSTREAM_COMMIT=661626d0e72f97806550790a98fb87116c9db825" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
-          "SANA_BUILD_CONFIG_COMMIT=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
-          Write-Host 'Upstream Code - OSS source is pinned and verified.'
+          npm ci
 
-      - name: Build gate
+      - name: Apply SANA product identity
+        working-directory: sana-config
         shell: pwsh
         run: |
-          throw 'Build integration is intentionally gated until build scripts, logo assets, Copilot/Agents removal patches, and the SANA License client are implemented and tested. This workflow must not publish an incomplete executable.'
+          $env:VSCODE_SOURCE_DIR = (Resolve-Path '../upstream-vscode').Path
+          node build/prepare-sana.mjs
+
+      - name: Validate build configuration and update tooling
+        working-directory: sana-config
+        shell: pwsh
+        run: |
+          node --check build/prepare-sana.mjs
+          node --check updates/create-manifest.mjs
+          node --check updates/verify-update.mjs
+          $schema = Get-Content updates/manifest.schema.json -Raw | ConvertFrom-Json
+          if ($schema.title -ne 'SANA Update Manifest v1') { throw 'Unexpected update manifest schema.' }
+          $product = Get-Content ../upstream-vscode/product.json -Raw | ConvertFrom-Json
+          if ($product.nameShort -ne 'SANA') { throw 'SANA product branding was not applied.' }
+
+      - name: Build official VS Code Windows x64 distribution
+        working-directory: upstream-vscode
+        shell: pwsh
+        run: |
+          npm run gulp -- vscode-win32-x64
+
+      - name: Verify packaged executable
+        shell: pwsh
+        run: |
+          $exe = 'upstream-vscode/.build/win32-x64/VSCode-win32-x64/code.exe'
+          $candidates = @(
+            'upstream-vscode/.build/win32-x64/VSCode-win32-x64/code.exe',
+            'upstream-vscode/.build/win32-x64/VSCode-win32-x64/SANA.exe',
+            'upstream-vscode/.build/win32-x64/VSCode-win32-x64/code'
+          )
+          $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $found) {
+            Get-ChildItem upstream-vscode/.build -Recurse -Filter '*.exe' -ErrorAction SilentlyContinue | Select-Object -First 30 FullName | Format-Table | Out-String | Write-Host
+            throw 'The Code - OSS build did not produce the expected Windows executable.'
+          }
+          Write-Host "Build output found: $found"
+
+      - name: Upload unsigned engineering build
+        uses: actions/upload-artifact@v4
+        with:
+          name: sana-engineering-build-${{ github.sha }}
+          path: |
+            upstream-vscode/.build/win32-x64/VSCode-win32-x64/**
+            !upstream-vscode/.build/win32-x64/VSCode-win32-x64/resources/app/node_modules
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Release readiness notice
+        shell: pwsh
+        run: |
+          @'
+          This is an unsigned engineering build from the pinned official Code - OSS source.
+          SANA License runtime integration, complete Agents/Copilot removal audit,
+          branded icon resource wiring, installer packaging, and signed updater integration
+          remain release gates. This workflow intentionally does not publish a public release.
+          '@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
