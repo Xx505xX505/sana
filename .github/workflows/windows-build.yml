@@ -1,0 +1,53 @@
+name: SANA Windows Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'branding/**'
+      - 'build/**'
+      - '.github/workflows/windows-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout SANA distribution config
+        uses: actions/checkout@v4
+
+      - name: Validate pinned upstream commit
+        shell: pwsh
+        run: |
+          if (-not '${{ vars.VSCODE_COMMIT }}') { throw 'Set repository variable VSCODE_COMMIT to an exact microsoft/vscode commit SHA before building.' }
+          if ('${{ vars.VSCODE_COMMIT }}' -notmatch '^[0-9a-f]{40}$') { throw 'VSCODE_COMMIT must be a full 40-character commit SHA.' }
+
+      - name: Checkout official VS Code source
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vscode
+          ref: ${{ vars.VSCODE_COMMIT }}
+          path: upstream-vscode
+          fetch-depth: 1
+
+      - name: Verify upstream source identity
+        shell: pwsh
+        run: |
+          $actual = (git -C upstream-vscode rev-parse HEAD).Trim()
+          if ($actual -ne '${{ vars.VSCODE_COMMIT }}') { throw "Upstream SHA mismatch: $actual" }
+          if (-not (Test-Path 'upstream-vscode/product.json')) { throw 'Not a VS Code source checkout.' }
+
+      - name: Report build inputs
+        shell: pwsh
+        run: |
+          "SANA_BUILD_UPSTREAM_COMMIT=${{ vars.VSCODE_COMMIT }}" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "SANA_BUILD_CONFIG_COMMIT=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          Write-Host 'Upstream Code - OSS source is pinned and verified.'
+
+      - name: Build gate
+        shell: pwsh
+        run: |
+          throw 'Build integration is intentionally gated until build scripts, logo assets, Copilot/Agents removal patches, and the SANA License client are implemented and tested. This workflow must not publish an incomplete executable.'
