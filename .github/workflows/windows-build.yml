@@ -19,17 +19,16 @@ jobs:
       - name: Checkout SANA distribution config
         uses: actions/checkout@v4
 
-      - name: Validate pinned upstream commit
+      - name: Set pinned upstream revision
         shell: pwsh
         run: |
-          if (-not '${{ vars.VSCODE_COMMIT }}') { throw 'Set repository variable VSCODE_COMMIT to an exact microsoft/vscode commit SHA before building.' }
-          if ('${{ vars.VSCODE_COMMIT }}' -notmatch '^[0-9a-f]{40}$') { throw 'VSCODE_COMMIT must be a full 40-character commit SHA.' }
+          "VSCODE_COMMIT=661626d0e72f97806550790a98fb87116c9db825" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Checkout official VS Code source
         uses: actions/checkout@v4
         with:
           repository: microsoft/vscode
-          ref: ${{ vars.VSCODE_COMMIT }}
+          ref: 661626d0e72f97806550790a98fb87116c9db825
           path: upstream-vscode
           fetch-depth: 1
 
@@ -37,13 +36,13 @@ jobs:
         shell: pwsh
         run: |
           $actual = (git -C upstream-vscode rev-parse HEAD).Trim()
-          if ($actual -ne '${{ vars.VSCODE_COMMIT }}') { throw "Upstream SHA mismatch: $actual" }
+          if ($actual -ne '661626d0e72f97806550790a98fb87116c9db825') { throw "Upstream SHA mismatch: $actual" }
           if (-not (Test-Path 'upstream-vscode/product.json')) { throw 'Not a VS Code source checkout.' }
 
       - name: Report build inputs
         shell: pwsh
         run: |
-          "SANA_BUILD_UPSTREAM_COMMIT=${{ vars.VSCODE_COMMIT }}" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "SANA_BUILD_UPSTREAM_COMMIT=661626d0e72f97806550790a98fb87116c9db825" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
           "SANA_BUILD_CONFIG_COMMIT=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
           Write-Host 'Upstream Code - OSS source is pinned and verified.'
 
