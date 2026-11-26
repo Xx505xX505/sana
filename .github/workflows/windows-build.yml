@@ -47,8 +47,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.18.0'
-          cache: npm
-          cache-dependency-path: upstream-vscode/package-lock.json
 
       - name: Install VS Code build dependencies
         working-directory: upstream-vscode
