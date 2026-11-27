@@ -133,7 +133,7 @@ jobs:
           Write-Host 'Packaged Copilot extension folders are absent.'
 
       - name: Upload unsigned engineering build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: sana-engineering-build-${{ github.sha }}
           path: |
