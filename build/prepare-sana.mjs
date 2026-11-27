@@ -28,7 +28,7 @@ delete product.agentsTelemetryAppName;
 delete product.trustedExtensionAuthAccess;
 if (Array.isArray(product.builtInExtensionsEnabledWithAutoUpdates)) {
   product.builtInExtensionsEnabledWithAutoUpdates = product.builtInExtensionsEnabledWithAutoUpdates
-    .filter(id => !/^github\\.copilot(?:-chat)?$/i.test(id));
+    .filter(id => !/^github\.copilot(?:-chat)?$/i.test(id));
   if (product.builtInExtensionsEnabledWithAutoUpdates.length === 0) {
     delete product.builtInExtensionsEnabledWithAutoUpdates;
   }
