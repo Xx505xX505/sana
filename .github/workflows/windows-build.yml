@@ -99,33 +99,46 @@ jobs:
         run: |
           npm run gulp -- vscode-win32-x64
 
-      - name: Verify packaged executable
+      - name: Verify and sanitize packaged executable
         shell: pwsh
         run: |
-          $packageDir = 'upstream-vscode/VSCode-win32-x64'
-          $exe = Join-Path $packageDir 'Code.exe'
-          if (-not (Test-Path $exe)) {
-            Get-ChildItem upstream-vscode -Recurse -Filter '*.exe' -ErrorAction SilentlyContinue |
-              Select-Object -First 50 FullName | Format-Table | Out-String | Write-Host
-            throw "Code - OSS build output is missing: $exe"
+          $packageDir = 'VSCode-win32-x64'
+          if (-not (Test-Path $packageDir)) {
+            Get-ChildItem -Path . -Directory | Select-Object Name | Format-Table | Out-String | Write-Host
+            throw "VS Code package directory was not created: $packageDir"
           }
+          $exe = Get-ChildItem -Path $packageDir -File -Filter '*.exe' |
+            Where-Object { $_.Name -notmatch '^(unins|uninstall|elevate|crashpad)' } |
+            Select-Object -First 1
+          if (-not $exe) {
+            Get-ChildItem -Path $packageDir -Recurse -File -Filter '*.exe' -ErrorAction SilentlyContinue |
+              Select-Object -First 50 FullName | Format-Table | Out-String | Write-Host
+            throw "No application executable found in $packageDir"
+          }
+          $extensionsDir = Join-Path $packageDir 'resources/app/extensions'
           $copilotPaths = @(
-            (Join-Path $packageDir 'resources/app/extensions/copilot'),
-            (Join-Path $packageDir 'resources/app/extensions/copilot-chat')
+            (Join-Path $extensionsDir 'copilot'),
+            (Join-Path $extensionsDir 'copilot-chat')
           )
+          foreach ($copilotPath in $copilotPaths) {
+            if (Test-Path $copilotPath) {
+              Remove-Item -LiteralPath $copilotPath -Recurse -Force
+              Write-Host "Removed packaged Copilot extension: $copilotPath"
+            }
+          }
           foreach ($copilotPath in $copilotPaths) {
             if (Test-Path $copilotPath) { throw "Copilot extension remains in package: $copilotPath" }
           }
-          Write-Host "Verified executable: $exe"
-          Write-Host 'Copilot extension folders are absent from the packaged app.'
+          Write-Host "Verified application executable: $($exe.FullName)"
+          Write-Host 'Packaged Copilot extension folders are absent.'
 
       - name: Upload unsigned engineering build
         uses: actions/upload-artifact@v4
         with:
           name: sana-engineering-build-${{ github.sha }}
           path: |
-            upstream-vscode/VSCode-win32-x64/**
-            !upstream-vscode/VSCode-win32-x64/resources/app/node_modules
+            VSCode-win32-x64/**
+            !VSCode-win32-x64/resources/app/node_modules
           if-no-files-found: error
           retention-days: 7
 
