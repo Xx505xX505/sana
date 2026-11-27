@@ -37,6 +37,14 @@ app = replaceExactlyOnce(app,
   '',
   'remove Copilot onboarding IPC channel');
 app = replaceExactlyOnce(app,
+  "\t\t// Handle agents window first based on context\n\t\tif (args['agents']) {\n\t\t\treturn windowsMainService.openAgentsWindow({\n\t\t\t\tcontext,\n\t\t\t\tcli: args,\n\t\t\t\tinitialStartup: true\n\t\t\t});\n\t\t}\n\n",
+  '',
+  'disable Agents command-line window launch');
+app = replaceExactlyOnce(app,
+  "\t\t\tconst agentsWindowProtocolUrlIndex = initialProtocolUrls.urls.findIndex(protocolUrl =>\n\t\t\t\tparseExternalOpenSessionLinkUri(protocolUrl.uri, this.productService.urlProtocol)\n\t\t\t\t|| parseExternalAgentsWindowNewSessionLinkUri(protocolUrl.uri, this.productService.urlProtocol));\n\t\t\tif (agentsWindowProtocolUrlIndex >= 0) {\n\t\t\t\tconst [agentsWindowProtocolUrl] = initialProtocolUrls.urls.splice(agentsWindowProtocolUrlIndex, 1);\n\t\t\t\tconst agentSessionLink = parseExternalOpenSessionLinkUri(agentsWindowProtocolUrl.uri, this.productService.urlProtocol);\n\t\t\t\tconst newSessionLink = parseExternalAgentsWindowNewSessionLinkUri(agentsWindowProtocolUrl.uri, this.productService.urlProtocol);\n\t\t\t\treturn windowsMainService.openAgentsWindow({\n\t\t\t\t\tcontext: OpenContext.LINK,\n\t\t\t\t\tcli: args,\n\t\t\t\t\tinitialStartup: true,\n\t\t\t\t}, newSessionLink?.workspaceUri, agentSessionLink, AgentsWindowOpenSource.Link, false, newSessionLink?.draft);\n\t\t\t}\n\n",
+  '',
+  'disable Agents protocol startup window launch');
+app = replaceExactlyOnce(app,
   "\t\tconst agentSessionLink = parseExternalOpenSessionLinkUri(uri, this.productService.urlProtocol);\n\t\tif (agentSessionLink) {\n\t\t\tconst windows = await windowsMainService.openAgentsWindow({\n\t\t\t\tcontext: OpenContext.LINK,\n\t\t\t\tcli: { ...this.environmentMainService.args },\n\t\t\t}, undefined, agentSessionLink, AgentsWindowOpenSource.Link);\n\t\t\treturn windows.length > 0;\n\t\t}\n\n\t\tconst newSessionLink = parseExternalAgentsWindowNewSessionLinkUri(uri, this.productService.urlProtocol);\n\t\tif (newSessionLink) {\n\t\t\tconst windows = await windowsMainService.openAgentsWindow({\n\t\t\t\tcontext: OpenContext.LINK,\n\t\t\t\tcli: { ...this.environmentMainService.args },\n\t\t\t}, newSessionLink.workspaceUri, undefined, AgentsWindowOpenSource.Link, false, newSessionLink.draft);\n\t\t\treturn windows.length > 0;\n\t\t}\n\n",
   '',
   'disable Agents deep-link window launch');
