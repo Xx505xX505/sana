@@ -19,7 +19,7 @@ function replaceExactlyOnce(source, before, after, label) {
   return source.slice(0, first) + after + source.slice(first + before.length);
 }
 
-let app = fs.readFileSync(files.app, 'utf8');
+let app = fs.readFileSync(files.app, 'utf8').replace(/\r\n/g, '\n');
 app = replaceExactlyOnce(app,
   "import { ONBOARDING_TRYOUT_CHANNEL } from '../../platform/onboarding/common/onboardingTryoutHandoff.js';\nimport { OnboardingTryoutHandoff } from '../../platform/onboarding/electron-main/onboardingTryoutHandoff.js';\n",
   '',
@@ -51,7 +51,7 @@ app = replaceExactlyOnce(app,
 app = app.replace(', parseExternalAgentsWindowNewSessionLinkUri', '');
 fs.writeFileSync(files.app, app, 'utf8');
 
-let main = fs.readFileSync(files.main, 'utf8');
+let main = fs.readFileSync(files.main, 'utf8').replace(/\r\n/g, '\n');
 main = replaceExactlyOnce(main,
   "import { GITHUB_COPILOT_MACOS_BUNDLE_ID, GITHUB_COPILOT_WIN32_POLICY_NAME, GITHUB_COPILOT_WIN32_REGISTRY_PATH, INativeManagedSettingsService, IFileManagedSettingsService, MANAGED_SETTINGS_FILE_NAME, MANAGED_SETTINGS_LINUX_FILE_PATH, MANAGED_SETTINGS_MACOS_FILE_PATH, MANAGED_SETTINGS_WINDOWS_DIR, NullNativeManagedSettingsService, NullFileManagedSettingsService } from '../../platform/policy/common/copilotManagedSettings.js';\nimport { FileManagedSettingsService } from '../../platform/policy/common/fileManagedSettingsService.js';\nimport { NativeManagedSettingsService } from '../../platform/policy/node/nativeManagedSettingsService.js';\n",
   '',
@@ -62,7 +62,7 @@ main = replaceExactlyOnce(main,
   'remove Copilot managed-settings service registration');
 fs.writeFileSync(files.main, main, 'utf8');
 
-let onboarding = fs.readFileSync(files.onboarding, 'utf8');
+let onboarding = fs.readFileSync(files.onboarding, 'utf8').replace(/\r\n/g, '\n');
 onboarding = replaceExactlyOnce(onboarding,
   "import { localize2 } from '../../../../nls.js';\n",
   "import { Event } from '../../../../base/common/event.js';\nimport { localize2 } from '../../../../nls.js';\n",
