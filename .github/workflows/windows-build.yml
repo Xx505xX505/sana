@@ -79,6 +79,12 @@ jobs:
           $product = Get-Content ../upstream-vscode/product.json -Raw | ConvertFrom-Json
           if ($product.nameShort -ne 'SANA') { throw 'SANA product branding was not applied.' }
 
+      - name: Test signed update tooling
+        working-directory: sana-config
+        shell: pwsh
+        run: |
+          node --test tests/update-tools.test.mjs
+
       - name: Add Windows SDK SignTool to PATH
         shell: pwsh
         run: |
