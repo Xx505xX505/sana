@@ -67,6 +67,14 @@ jobs:
           $env:VSCODE_SOURCE_DIR = (Resolve-Path '../upstream-vscode').Path
           node build/prepare-sana.mjs
 
+      - name: Apply SANA engine feature removals
+        working-directory: sana-config
+        shell: pwsh
+        run: |
+          node --check build/patch-sana-upstream.mjs
+          $env:VSCODE_SOURCE_DIR = (Resolve-Path '../upstream-vscode').Path
+          node build/patch-sana-upstream.mjs
+
       - name: Validate build configuration and update tooling
         working-directory: sana-config
         shell: pwsh
