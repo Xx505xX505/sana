@@ -153,7 +153,7 @@ jobs:
                 $publisher = [string]$manifest.publisher
                 $extensionName = [string]$manifest.name
                 $extensionId = "$publisher.$extensionName"
-                if ($extensionId -match '(?i)(^|[.])copilot([.]|$)|(^|[.])agents?([.]|$)') {
+                if ($extensionId -match '(?i)(^|[.])copilot(?:[-.]|$)|(^|[.])agents?(?:[-.]|$)') {
                   $extensionAudit += $extensionId
                 }
               } catch {
