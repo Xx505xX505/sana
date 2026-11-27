@@ -22,12 +22,12 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout SANA distribution config
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           path: sana-config
 
       - name: Checkout pinned official VS Code source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           repository: microsoft/vscode
           ref: 661626d0e72f97806550790a98fb87116c9db825
@@ -44,7 +44,7 @@ jobs:
           "SANA uses official microsoft/vscode commit $actual" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: '24.22.1'
 
@@ -102,26 +102,30 @@ jobs:
       - name: Verify packaged executable
         shell: pwsh
         run: |
-          $exe = 'upstream-vscode/.build/win32-x64/VSCode-win32-x64/code.exe'
-          $candidates = @(
-            'upstream-vscode/.build/win32-x64/VSCode-win32-x64/code.exe',
-            'upstream-vscode/.build/win32-x64/VSCode-win32-x64/SANA.exe',
-            'upstream-vscode/.build/win32-x64/VSCode-win32-x64/code'
-          )
-          $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $found) {
-            Get-ChildItem upstream-vscode/.build -Recurse -Filter '*.exe' -ErrorAction SilentlyContinue | Select-Object -First 30 FullName | Format-Table | Out-String | Write-Host
-            throw 'The Code - OSS build did not produce the expected Windows executable.'
+          $packageDir = 'upstream-vscode/VSCode-win32-x64'
+          $exe = Join-Path $packageDir 'Code.exe'
+          if (-not (Test-Path $exe)) {
+            Get-ChildItem upstream-vscode -Recurse -Filter '*.exe' -ErrorAction SilentlyContinue |
+              Select-Object -First 50 FullName | Format-Table | Out-String | Write-Host
+            throw "Code - OSS build output is missing: $exe"
           }
-          Write-Host "Build output found: $found"
+          $copilotPaths = @(
+            (Join-Path $packageDir 'resources/app/extensions/copilot'),
+            (Join-Path $packageDir 'resources/app/extensions/copilot-chat')
+          )
+          foreach ($copilotPath in $copilotPaths) {
+            if (Test-Path $copilotPath) { throw "Copilot extension remains in package: $copilotPath" }
+          }
+          Write-Host "Verified executable: $exe"
+          Write-Host 'Copilot extension folders are absent from the packaged app.'
 
       - name: Upload unsigned engineering build
         uses: actions/upload-artifact@v4
         with:
           name: sana-engineering-build-${{ github.sha }}
           path: |
-            upstream-vscode/.build/win32-x64/VSCode-win32-x64/**
-            !upstream-vscode/.build/win32-x64/VSCode-win32-x64/resources/app/node_modules
+            upstream-vscode/VSCode-win32-x64/**
+            !upstream-vscode/VSCode-win32-x64/resources/app/node_modules
           if-no-files-found: error
           retention-days: 7
 
