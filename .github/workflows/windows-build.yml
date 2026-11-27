@@ -143,6 +143,28 @@ jobs:
           foreach ($copilotPath in $copilotPaths) {
             if (Test-Path $copilotPath) { throw "Copilot extension remains in package: $copilotPath" }
           }
+
+          # Audit installed extension manifests by declared extension ID, not folder name.
+          $extensionAudit = @()
+          if (Test-Path $extensionsDir) {
+            Get-ChildItem -Path $extensionsDir -Recurse -File -Filter package.json | ForEach-Object {
+              try {
+                $manifest = Get-Content $_.FullName -Raw | ConvertFrom-Json
+                $publisher = [string]$manifest.publisher
+                $extensionName = [string]$manifest.name
+                $extensionId = "$publisher.$extensionName"
+                if ($extensionId -match '(?i)(^|[.])copilot([.]|$)|(^|[.])agents?([.]|$)') {
+                  $extensionAudit += $extensionId
+                }
+              } catch {
+                throw "Could not inspect extension manifest: $($_.FullName)"
+              }
+            }
+          }
+          if ($extensionAudit.Count -gt 0) {
+            throw "Agent/Copilot extension manifests remain packaged: $($extensionAudit -join ', ')"
+          }
+          Write-Host 'Extension manifest audit passed: no Copilot or dedicated Agents extensions are packaged.'
           Write-Host "Verified application executable: $($exe.FullName)"
           Write-Host 'Packaged Copilot extension folders are absent.'
 
