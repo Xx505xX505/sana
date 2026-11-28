@@ -9,6 +9,7 @@ on:
       - 'build/**'
       - 'docs/**'
       - 'license/**'
+      - 'tests/**'
       - '.github/workflows/windows-build.yml'
 
 permissions:
