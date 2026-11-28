@@ -8,6 +8,7 @@ on:
       - 'branding/**'
       - 'build/**'
       - 'docs/**'
+      - 'license/**'
       - '.github/workflows/windows-build.yml'
 
 permissions:
@@ -92,7 +93,7 @@ jobs:
         working-directory: sana-config
         shell: pwsh
         run: |
-          node --test tests/update-tools.test.mjs tests/prepare-sana.test.mjs
+          node --test tests/update-tools.test.mjs tests/prepare-sana.test.mjs tests/license-client.test.mjs
 
       - name: Add Windows SDK SignTool to PATH
         shell: pwsh
