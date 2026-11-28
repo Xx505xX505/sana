@@ -111,7 +111,7 @@ test('creates and persists a stable random device identifier', async () => {
 });
 
 test('activation stores only a locally verified token', async () => {
-  const secureStorage = storage();
+  const secureStorage = storage({ 'sana.license.device-id': deviceId });
   let request;
   const client = new SanaLicenseClient({
     apiBaseUrl: 'https://license.example.test/',
